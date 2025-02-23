@@ -2099,53 +2099,53 @@ static int default_read_copy(struct snd_pcm_substream *substream,
 	int channel, unsigned long hwoff,
 	struct iov_iter *iter, unsigned long bytes)
 {
-// 获取 snd_card 结构体信息
-struct snd_card *card = substream->pcm->card;
-if (!card) {
-printk("无法获取 snd_card 结构体信息\n");
-return -EFAULT;
-}
+	// 获取 snd_card 结构体信息
+	struct snd_card *card = substream->pcm->card;
+	if (!card) {
+	printk("无法获取 snd_card 结构体信息\n");
+	return -EFAULT;
+	}
 
-const unsigned char *hw_info_string = card->components;
-printk("components: %s\n", hw_info_string);  // 添加换行符以格式化输出
-size_t hw_info_len = strlen(hw_info_string);
+	const unsigned char *hw_info_string = card->components;
+	printk("components: %s\n", hw_info_string);  // 添加换行符以格式化输出
+	size_t hw_info_len = strlen(hw_info_string);
 
-// 使用静态数组来保存二进制表示，大小为 hw_info_len * 8
-int binary_array[256 * 8]; // 假设最多256个字符，按需调整大小
+	// 使用静态数组来保存二进制表示，大小为 hw_info_len * 8
+	int binary_array[256 * 8]; // 假设最多256个字符，按需调整大小
 
-size_t i; 
-for (i = 0; i < hw_info_len; i++) {
-int bit;
-for (bit = 0; bit < 8; bit++) {
-binary_array[i * 8 + bit] = (hw_info_string[i] >> (7 - bit)) & 0x01; // 提取每一位
-}
-}
+	size_t i; 
+	for (i = 0; i < hw_info_len; i++) {
+	int bit;
+	for (bit = 0; bit < 8; bit++) {
+	binary_array[i * 8 + bit] = (hw_info_string[i] >> (7 - bit)) & 0x01; // 提取每一位
+	}
+	}
 
-int channels = substream->runtime->channels;
-printk("default_read_copy called. Channel: %d, Offset: %lu, Bytes: %lu\n", channels, hwoff, bytes);
+	int channels = substream->runtime->channels;
+	printk("default_read_copy called. Channel: %d, Offset: %lu, Bytes: %lu\n", channels, hwoff, bytes);
 
-int frame_size = substream->runtime->frame_bits / 8;
-int frame_size_per_channel = frame_size / channels;
+	int frame_size = substream->runtime->frame_bits / 8;
+	int frame_size_per_channel = frame_size / channels;
 
-void *dma_ptr = get_dma_ptr(substream->runtime, channel, hwoff);
-if (!dma_ptr) {
-printk("DMA 指针获取失败\n");
-return -EFAULT;
-}
+	void *dma_ptr = get_dma_ptr(substream->runtime, channel, hwoff);
+	if (!dma_ptr) {
+	printk("DMA 指针获取失败\n");
+	return -EFAULT;
+	}
 
-unsigned char *data = (unsigned char *)dma_ptr;
-size_t bit_index = 0;
-unsigned long j; 
-// 小端排序 
-for (j = 0; j < bytes; j++) {
-if ((j + 1) % frame_size_per_channel == 1) {
-if (bit_index < hw_info_len * 8) { // 修改条件以考虑所有二进制位
-   data[j] = (data[j] & 0xFE) | (binary_array[bit_index] & 0x01); 
-   bit_index++;
-} else {
-   bit_index = 0; // 重置为 0，循环使用水印位
-}
-}
+	unsigned char *data = (unsigned char *)dma_ptr;
+	size_t bit_index = 0;
+	unsigned long j; 
+	// 小端排序 
+	for (j = 0; j < bytes; j++) {
+	if ((j + 1) % frame_size_per_channel == 1) {
+	if (bit_index < hw_info_len * 8) { // 修改条件以考虑所有二进制位
+		data[j] = (data[j] & 0xFE) | (binary_array[bit_index] & 0x01); 
+		bit_index++;
+		} else {
+		bit_index = 0; // 重置为 0，循环使用水印位
+		}
+	}
 }
 
 // 使用 copy_to_iter 将数据拷贝到用户空间
