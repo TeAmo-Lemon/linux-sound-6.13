@@ -22,6 +22,7 @@
 #include <linux/version.h> // For LINUX_VERSION_CODE
 #include <linux/pci.h>     // For PCI device info if applicable
 #include <linux/netdevice.h> // For network device info
+#include <linux/utsname.h>  // For UTS_RELEASE and utsname()
 
 #include "pcm_watermark.h"
 
@@ -30,6 +31,7 @@
 #ifdef CONFIG_SND_PCM_XRUN_DEBUG
 #define CREATE_TRACE_POINTS
 #include "pcm_trace.h"
+
 #else
 #define trace_hwptr(substream, pos, in_interrupt)
 #define trace_xrun(substream)
@@ -2049,8 +2051,8 @@ EXPORT_SYMBOL(snd_pcm_period_elapsed_under_stream_lock);
  */
 void snd_pcm_period_elapsed(struct snd_pcm_substream *substream)
 {
-	void *caller = __builtin_return_address(0);
-    printk(KERN_INFO "%s called by %pS\n", __func__, caller);
+	// void *caller = __builtin_return_address(0);
+    // printk(KERN_INFO "%s called by %pS\n", __func__, caller);
 	if (snd_BUG_ON(!substream))
 		return;
 
@@ -2213,6 +2215,26 @@ static int fill_silence(struct snd_pcm_substream *substream, int channel,
 // 		return -EFAULT;
 // 	return 0;
 // }
+// static int default_read_copy(struct snd_pcm_substream *substream,
+// 				 int channel, unsigned long hwoff,
+// 				 struct iov_iter *iter, unsigned long bytes)
+// {
+// 	struct snd_pcm_runtime *runtime = substream->runtime;
+// 	void *pcm_data_ptr = get_dma_ptr(runtime, channel, hwoff);
+// 	unsigned char *data = pcm_data_ptr;
+// 	unsigned long i;
+	
+
+// 	__s16 *pcm_ptr = pcm_data_ptr;
+// 	snd_pcm_uframes_t samples_to_watermark = bytes / (runtime->frame_bits / (8*(runtime->channels)));
+// 	for(i=0;i<samples_to_watermark;i++){
+// 		pcm_ptr[i] &= 0xFF00; 
+// 	}
+// 	if (copy_to_iter(pcm_data_ptr, bytes, iter) != bytes)
+// 		return -EFAULT;
+	
+// 	return 0;
+// }
 
 /* default copy ops for read; used for both interleaved and non- modes */
 static int default_read_copy(struct snd_pcm_substream *substream,
@@ -2229,8 +2251,7 @@ static int default_read_copy(struct snd_pcm_substream *substream,
 
 	/* 获取指向 DMA 缓冲区中当前位置的指针 */
 	void *pcm_data_ptr = get_dma_ptr(runtime, channel, hwoff);
-	pr_info("ALSA watermark: Device id: %s Device name: %s\n", substream->pcm->id,substream->pcm->name);
-	pr_info("ALSA watermark: card longname: %s card shortname: %s\n", substream->pcm->card->longname, substream->pcm->card->shortname);
+	__s16 *pcm_ptr = (__s16*)pcm_data_ptr;
 	/*
      * ===================================================================
      * ========================= 音频水印嵌入开始 ==========================
@@ -2238,20 +2259,27 @@ static int default_read_copy(struct snd_pcm_substream *substream,
      */
     if (pcm_data_ptr) {
 		// 计算要处理的样本数量
-		snd_pcm_uframes_t samples_to_watermark = bytes / (runtime->frame_bits / 8);
-		pr_info("embed watermark into %lu samples. sample_rate: %d\n", samples_to_watermark,
-		  runtime->sample_bits);
-		
+		snd_pcm_uframes_t samples_to_watermark = bytes / (runtime->frame_bits / (8 *runtime->channels));
+		// 量化步长
+		char device_watermark[32];
+        snprintf(device_watermark, sizeof(device_watermark), 
+                "K%.4s-H%.4s-DEV:%s-CH:%d-SR:%d", 
+                utsname()->release,
+                utsname()->nodename,
+				substream->pcm->card->shortname,
+                runtime->channels,
+				runtime->rate);
+
         snd_pcm_watermark_embed(
-            (__s16 *)pcm_data_ptr,         // 音频数据指针
-            samples_to_watermark,          // 要处理的样本数量
+            pcm_ptr,         // 音频数据指针
+            samples_to_watermark,
+			device_watermark,          // 要处理的样本数量
             watermark_delta_g              // 量化步长
         );
-        pr_info("ALSA watermark: Embedded watermark into %lu samples.\n", samples_to_watermark);
+        // pr_info("ALSA watermark: Embedded watermark into %lu samples.\n", samples_to_watermark);
     } else {
         pr_warn("ALSA watermark: Watermark buffer not ready or no data to watermark.\n");
     }
-
 	/* 执行原始的数据复制操作，确保音频流正常工作 */
 	if (copy_to_iter(pcm_data_ptr, bytes, iter) != bytes)
 		return -EFAULT;
@@ -2473,7 +2501,7 @@ snd_pcm_sframes_t __snd_pcm_lib_xfer(struct snd_pcm_substream *substream,
 			transfer = substream->ops->copy;
 		}
 		else{
-		printk("using default_copy\n");
+		// printk("using default_copy\n");
 		transfer = is_playback ?
 			default_write_copy : default_read_copy;
 		}
