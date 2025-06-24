@@ -327,6 +327,7 @@ EXPORT_SYMBOL_GPL(azx_get_position);
 
 static snd_pcm_uframes_t azx_pcm_pointer(struct snd_pcm_substream *substream)
 {
+	printk("azx_pcm_pointer called\n");
 	struct azx_pcm *apcm = snd_pcm_substream_chip(substream);
 	struct azx *chip = apcm->chip;
 	struct azx_dev *azx_dev = get_azx_dev(substream);

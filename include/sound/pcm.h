@@ -446,6 +446,9 @@ struct snd_pcm_runtime {
 	struct snd_pcm_audio_tstamp_report audio_tstamp_report;
 	struct timespec64 driver_tstamp;
 
+	/* ---- 添加的字段 ---- */
+    bool authenticated; // 认证成功标志
+
 #if IS_ENABLED(CONFIG_SND_PCM_OSS)
 	/* -- OSS things -- */
 	struct snd_pcm_oss_runtime oss;

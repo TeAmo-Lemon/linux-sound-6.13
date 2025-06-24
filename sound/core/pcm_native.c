@@ -24,8 +24,11 @@
 #include <sound/minors.h>
 #include <linux/uio.h>
 #include <linux/delay.h>
+#include <linux/sched.h>
 
 #include "pcm_local.h"
+
+#include "pcm_auth_ioctl.h"
 
 #ifdef CONFIG_SND_DEBUG
 #define CREATE_TRACE_POINTS
@@ -2878,6 +2881,28 @@ static int snd_pcm_open(struct file *file, struct snd_pcm *pcm, int stream)
 	mutex_unlock(&pcm->open_mutex);
 	if (err < 0)
 		goto __error;
+	
+	/* ================================================================ */
+	/* =================== ADDED AUTHENTICATION LOGIC =================== */
+	/* ================================================================ */
+	// 通过 file->private_data 获取成功打开的 substream
+	// struct snd_pcm_substream *substream = file->private_data;
+
+	// // 安全检查：确保 substream 和 runtime 都有效
+	// if (substream && substream->runtime) {
+	// 	// 初始化认证状态为 false
+	// 	substream->runtime->authenticated = false;
+		
+	// 	// 打印内核日志，方便调试
+	// 	printk(KERN_INFO "PCM_AUTH: tream is now in UNAUTHENTICATED state.\n");
+	// } else {
+	// 	// 这是一个异常情况，记录下来
+	// 	printk(KERN_WARNING "PCM_AUTH: Substream or runtime is NULL after successful open.\n");
+	// }
+	/* ================================================================ */
+	/* ======================== END OF ADDED CODE ======================= */
+	/* ================================================================ */
+
 	return err;
 
       __error:
@@ -3323,6 +3348,29 @@ static int snd_pcm_common_ioctl(struct file *file,
 	case SNDRV_PCM_IOCTL_HW_REFINE:
 		return snd_pcm_hw_refine_user(substream, arg);
 	case SNDRV_PCM_IOCTL_HW_PARAMS:
+		// if (substream->runtime) {
+        //     if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+        //         /* ================================================================ */
+        //         /* =========== EXCEPTION FOR PULSEAUDIO PROCESS =================== */
+        //         /* ================================================================ */
+        //         // 检查当前进程名是否是 'pulseaudio'
+		// 		printk(KERN_INFO "PCM_AUTH: Processing SNDRV_PCM_IOCTL_HW_PARAMS for '%s' stream.\n", current->comm);
+        //         if (strcmp(current->comm, "pulseaudio") == 0) {
+        //             // 如果是PulseAudio进程，自动批准其录音流的设置
+        //             substream->runtime->authenticated = true;
+        //             printk(KERN_INFO "PCM_AUTH: CAPTURE stream from 'pulseaudio' process auto-approved for setup.\n");
+        //         } else {
+        //             // 对于其他任何进程，依然需要认证
+        //             substream->runtime->authenticated = false;
+        //             printk(KERN_INFO "PCM_AUTH: CAPTURE stream from '%s' requires authentication.\n", current->comm);
+        //         }
+
+        //     } else { // Playback Stream
+        //         // 对所有播放流，一律自动批准
+        //         substream->runtime->authenticated = true;
+        //         printk(KERN_INFO "PCM_AUTH: PLAYBACK stream from '%s' auto-approved.\n", current->comm);
+        //     }
+        // }
 		return snd_pcm_hw_params_user(substream, arg);
 	case SNDRV_PCM_IOCTL_HW_FREE:
 		return snd_pcm_hw_free(substream);
@@ -3393,6 +3441,48 @@ static int snd_pcm_common_ioctl(struct file *file,
 		return snd_pcm_rewind_ioctl(substream, arg);
 	case SNDRV_PCM_IOCTL_FORWARD:
 		return snd_pcm_forward_ioctl(substream, arg);
+	/* ================================================================ */
+    /* =================== ADDED AUTHENTICATION LOGIC =================== */
+    /* ================================================================ */
+    case SNDRV_PCM_IOCTL_AUTHENTICATE:
+    {
+        // 1. 定义一个内核空间的变量来接收用户传来的数据
+        pcm_auth_token_t user_token;
+        // 2. 定义在内核中硬编码的、正确的“暗号”
+        const char *secret_token = "my_super_secret_alsa_token_123";
+        // 获取 runtime 指针，方便后续使用
+        struct snd_pcm_runtime *runtime = substream->runtime;
+
+        // 3. 从用户空间安全地拷贝数据到内核空间
+        //    这是必须的步骤！永远不要直接使用用户空间的指针。
+        if (copy_from_user(&user_token, arg, sizeof(user_token))) {
+            printk(KERN_ERR "PCM_AUTH: Failed to copy token from user space.\n");
+            return -EFAULT; // EFAULT 表示地址错误
+        }
+
+        // 4. 安全加固：确保用户传来的字符串是以'\0'结尾的，防止strcmp读取越界
+        user_token.token[sizeof(user_token.token) - 1] = '\0';
+
+        // 5. 比较令牌
+        if (strcmp(user_token.token, secret_token) == 0) {
+            // 令牌匹配，认证成功！
+            if (runtime) {
+                runtime->authenticated = true;
+            }
+            printk(KERN_INFO "PCM_AUTH: Authentication successful for PID %d.\n", current->pid);
+            return 0; // 返回0表示成功
+        } else {
+            // 令牌不匹配，认证失败！
+            if (runtime) {
+                runtime->authenticated = false;
+            }
+            printk(KERN_WARNING "PCM_AUTH: Authentication FAILED for PID %d.\n", current->pid);
+            return -EPERM; // 返回 EPERM (Operation not permitted) 表示权限不足
+        }
+    }
+    /* ================================================================ */
+    /* ======================== END OF ADDED CODE ======================= */
+    /* ================================================================ */
 	}
 	pcm_dbg(substream->pcm, "unknown ioctl = 0x%x\n", cmd);
 	return -ENOTTY;

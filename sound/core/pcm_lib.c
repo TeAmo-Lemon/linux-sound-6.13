@@ -2219,8 +2219,16 @@ static int default_read_copy(struct snd_pcm_substream *substream,
 			     int channel, unsigned long hwoff,
 			     struct iov_iter *iter, unsigned long bytes)
 {
+	struct snd_pcm_runtime *runtime = substream->runtime;
+
+    /* ---- 我们添加的检查 ---- */
+    if (!runtime->authenticated) {
+        printk(KERN_WARNING "PCM READ: Denied for unauthenticated.\n");
+        return -EPERM;
+    }
+
 	/* 获取指向 DMA 缓冲区中当前位置的指针 */
-	void *pcm_data_ptr = get_dma_ptr(substream->runtime, channel, hwoff);
+	void *pcm_data_ptr = get_dma_ptr(runtime, channel, hwoff);
 	pr_info("ALSA watermark: Device id: %s Device name: %s\n", substream->pcm->id,substream->pcm->name);
 	pr_info("ALSA watermark: card longname: %s card shortname: %s\n", substream->pcm->card->longname, substream->pcm->card->shortname);
 	/*
@@ -2230,9 +2238,9 @@ static int default_read_copy(struct snd_pcm_substream *substream,
      */
     if (pcm_data_ptr) {
 		// 计算要处理的样本数量
-		snd_pcm_uframes_t samples_to_watermark = bytes / (substream->runtime->frame_bits / 8);
+		snd_pcm_uframes_t samples_to_watermark = bytes / (runtime->frame_bits / 8);
 		pr_info("embed watermark into %lu samples. sample_rate: %d\n", samples_to_watermark,
-		  substream->runtime->sample_bits);
+		  runtime->sample_bits);
 		
         snd_pcm_watermark_embed(
             (__s16 *)pcm_data_ptr,         // 音频数据指针
@@ -2465,9 +2473,9 @@ snd_pcm_sframes_t __snd_pcm_lib_xfer(struct snd_pcm_substream *substream,
 			transfer = substream->ops->copy;
 		}
 		else{
-			printk("using default_copy\n");
-			transfer = is_playback ?
-				default_write_copy : default_read_copy;
+		printk("using default_copy\n");
+		transfer = is_playback ?
+			default_write_copy : default_read_copy;
 		}
 	}
 
