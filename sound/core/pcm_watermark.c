@@ -367,8 +367,7 @@ void snd_pcm_watermark_embed(__s16 *samples, snd_pcm_uframes_t length, const cha
             convert_watermark_to_bits();
             // log_watermark_metadata();
             watermark_bit_offset_g = 0; // 重置偏移量
-            
-            // **这里绝对没有 break; 语句**
+        
         }
 
         // 从全局比特流数组中获取当前要嵌入的比特
