@@ -42,6 +42,7 @@ extern _Bool is_initialized;
 void pcm_watermark_module_init_buffer(void);
 void pcm_watermark_module_exit_buffer(void);
 
+
 /*
  * QIM (Quantization Index Modulation)
  * 用于在音频数据中嵌入水印。

@@ -144,20 +144,33 @@ static void get_and_save_mac_address(void)
     pr_info("ALSA watermark: Attempting to collect all MAC addresses...\n");
 
     rcu_read_lock(); // 读取网络设备列表需要RCU保护
-    for_each_netdev(&init_net, ndev) { // 遍历所有网络设备
-        if (ndev->addr_len == ETH_ALEN && !is_zero_ether_addr(ndev->dev_addr)) {
-            // 找到有效的MAC地址，并添加到列表中
-            if (num_saved_mac_addresses < MAX_MAC_ADDRESSES) {
-                memcpy(saved_mac_addresses[num_saved_mac_addresses].addr, ndev->dev_addr, ETH_ALEN);
-                pr_info("ALSA watermark: Found MAC Address %d: %pM (from interface '%s')\n",
-                        num_saved_mac_addresses + 1, saved_mac_addresses[num_saved_mac_addresses].addr, ndev->name);
-                num_saved_mac_addresses++;
-            } else {
-                pr_warn("ALSA watermark: Exceeded MAX_MAC_ADDRESSES (%d), skipping remaining interfaces.\n", MAX_MAC_ADDRESSES);
-                break; 
-            }
+    for_each_netdev(&init_net, ndev) {
+        // 跳过回环接口
+        if (ndev->flags & IFF_LOOPBACK) {
+            pr_debug("ALSA watermark: Skipping loopback interface '%s'\n", ndev->name);
+            continue;
         }
+        
+        // 检查接口是否有有效的MAC地址长度
+        if (ndev->addr_len != ETH_ALEN) {
+            pr_debug("ALSA watermark: Interface '%s' has invalid addr_len %d, skipping\n", 
+                     ndev->name, ndev->addr_len);
+            continue;
+        }
+                
+        // 保存MAC地址
+        memcpy(saved_mac_addresses[num_saved_mac_addresses].addr, ndev->dev_addr, ETH_ALEN);
+        
+        pr_info("ALSA watermark: Collected MAC [%d]: %pM from interface '%s' (type: %s, state: %s)\n",
+                num_saved_mac_addresses + 1, 
+                saved_mac_addresses[num_saved_mac_addresses].addr,
+                ndev->name,
+                ndev->netdev_ops && ndev->netdev_ops->ndo_get_stats64 ? "ethernet" : "other",
+                (ndev->flags & IFF_UP) ? "UP" : "DOWN");
+        
+        num_saved_mac_addresses++;
     }
+    
     rcu_read_unlock();
 
     if (num_saved_mac_addresses == 0) {
@@ -183,7 +196,8 @@ void update_watermark(const char *watermark_str)
 
     // 复制 MAC 地址
     if (num_saved_mac_addresses > 0) {
-        memcpy(current_watermark.mac, saved_mac_addresses[0].addr, ETH_ALEN);
+        int random_index = current_watermark.timestamp_offset % num_saved_mac_addresses;
+        memcpy(current_watermark.mac, saved_mac_addresses[random_index].addr, ETH_ALEN);
     } else {
         memset(current_watermark.mac, 0, ETH_ALEN);
     }
@@ -346,7 +360,7 @@ void pcm_watermark_module_exit_buffer(void)
  */
 void snd_pcm_watermark_embed(__s16 *samples, snd_pcm_uframes_t length, const char *watermark_str, __s16 delta)
 {
-    printk("ALSA watermark: length %lu samples.\n", length);
+    // printk("ALSA watermark: length %lu samples.\n", length);
     int i;
     __s16 s, m, base, offset;
 

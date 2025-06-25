@@ -296,17 +296,8 @@ static void update_audio_tstamp(struct snd_pcm_substream *substream,
 static int snd_pcm_update_hw_ptr0(struct snd_pcm_substream *substream,
 				  unsigned int in_interrupt)
 {
-	// 如果没有录音
-	// if (substream->stream != SNDRV_PCM_STREAM_CAPTURE) {
-	// 	printk("snd_pcm_update_hw_ptr0 : 没有录音 %d\n",substream->stream);
-	// }
+
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	
-	// printk boundary and access mode
-	// printk("snd_pcm_update_hw_ptr0: boundary=%ld, access=%d,format=%d,hw_ptr=%ld,in_interrupt=%d\n",
-	    //    runtime->boundary, runtime->access,runtime->format,runtime->status->hw_ptr,in_interrupt);
-	// dma_addr
-	// printk("snd_pcm_update_hw_ptr0: dma_addr=%pad\n", &runtime->dma_addr);
 
 	snd_pcm_uframes_t pos;             /* 从硬件获取的当前位置 */
 	snd_pcm_uframes_t old_hw_ptr, new_hw_ptr, hw_base; /* 旧的、新的和基础硬件指针位置 */
@@ -328,29 +319,7 @@ static int snd_pcm_update_hw_ptr0(struct snd_pcm_substream *substream,
 	 * 这些信息需要尽可能接近同时获取,以保证准确性
 	 */
 	pos = substream->ops->pointer(substream);
-	
-	// ****** 在这里插入你的 PCM 数据修改逻辑 ******
-    // if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-    //     struct snd_pcm_runtime *runtime = substream->runtime;
-    //     void *dma_buffer_vaddr = runtime->dma_area;
 
-    //     // 根据 pos 和 period_size 计算出刚完成的周期数据位置
-    //     snd_pcm_uframes_t period_start_frame;
-    //     if (pos >= runtime->period_size) {
-    //         period_start_frame = pos - runtime->period_size;
-    //     } else {
-    //         period_start_frame = runtime->buffer_size + pos - runtime->period_size;
-    //     }
-
-    //     unsigned long period_start_offset_bytes = frames_to_bytes(runtime, period_start_frame);
-    //     size_t period_bytes = frames_to_bytes(runtime, runtime->period_size);
-
-    //     void *data_to_modify = dma_buffer_vaddr + period_start_offset_bytes;
-
-    //     printk(KERN_INFO "snd_pcm_update_hw_ptr0: Modifying capture data at %p, size %zu bytes (current_hw_ptr=%lu)\n",
-    //            data_to_modify, period_bytes, pos);
-    //     memset(data_to_modify, 0, period_bytes); // 置零
-    // }
 
 	curr_jiffies = jiffies;
 	if (runtime->tstamp_mode == SNDRV_PCM_TSTAMP_ENABLE) {
@@ -2263,9 +2232,7 @@ static int default_read_copy(struct snd_pcm_substream *substream,
 		// 量化步长
 		char device_watermark[32];
         snprintf(device_watermark, sizeof(device_watermark), 
-                "K%.4s-H%.4s-DEV:%s-CH:%d-SR:%d", 
-                utsname()->release,
-                utsname()->nodename,
+                "DEV%sCH%dSR%d",
 				substream->pcm->card->shortname,
                 runtime->channels,
 				runtime->rate);

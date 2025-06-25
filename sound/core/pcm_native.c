@@ -3348,24 +3348,24 @@ static int snd_pcm_common_ioctl(struct file *file,
 	case SNDRV_PCM_IOCTL_HW_REFINE:
 		return snd_pcm_hw_refine_user(substream, arg);
 	case SNDRV_PCM_IOCTL_HW_PARAMS:
-		if (substream->runtime) {
-            if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-                /* ================================================================ */
-                /* =========== EXCEPTION FOR PULSEAUDIO PROCESS =================== */
-                /* ================================================================ */
-                // 检查当前进程名是否是 'pulseaudio'
-				printk(KERN_INFO "PCM_AUTH: Processing SNDRV_PCM_IOCTL_HW_PARAMS for '%s' stream.\n", current->comm);
-                if (strcmp(current->comm, "pulseaudio") == 0) {
-                    // 如果是PulseAudio进程，自动批准其录音流的设置
-                    substream->runtime->authenticated = true;
-                    printk(KERN_INFO "PCM_AUTH: CAPTURE stream from 'pulseaudio' process auto-approved for setup.\n");
-                } 
-            } else { // Playback Stream
-                // 对所有播放流，一律自动批准
-                substream->runtime->authenticated = true;
-                printk(KERN_INFO "PCM_AUTH: PLAYBACK stream from '%s' auto-approved.\n", current->comm);
-            }
-        }
+		// if (substream->runtime) {
+        //     if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+        //         /* ================================================================ */
+        //         /* =========== EXCEPTION FOR PULSEAUDIO PROCESS =================== */
+        //         /* ================================================================ */
+        //         // 检查当前进程名是否是 'pulseaudio'
+		// 		printk(KERN_INFO "PCM_AUTH: Processing SNDRV_PCM_IOCTL_HW_PARAMS for '%s' stream.\n", current->comm);
+        //         if (strcmp(current->comm, "pulseaudio") == 0) {
+        //             // 如果是PulseAudio进程，自动批准其录音流的设置
+        //             substream->runtime->authenticated = true;
+        //             printk(KERN_INFO "PCM_AUTH: CAPTURE stream from 'pulseaudio' process auto-approved for setup.\n");
+        //         } 
+        //     } else { // Playback Stream
+        //         // 对所有播放流，一律自动批准
+        //         substream->runtime->authenticated = true;
+        //         printk(KERN_INFO "PCM_AUTH: PLAYBACK stream from '%s' auto-approved.\n", current->comm);
+        //     }
+        // }
 		return snd_pcm_hw_params_user(substream, arg);
 	case SNDRV_PCM_IOCTL_HW_FREE:
 		return snd_pcm_hw_free(substream);
