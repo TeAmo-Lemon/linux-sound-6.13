@@ -326,14 +326,45 @@ unsigned int azx_get_position(struct azx *chip,
 }
 EXPORT_SYMBOL_GPL(azx_get_position);
 
+// static snd_pcm_uframes_t azx_pcm_pointer(struct snd_pcm_substream *substream)
+// {
+// 	struct azx_pcm *apcm = snd_pcm_substream_chip(substream);
+// 	struct azx *chip = apcm->chip;
+// 	struct azx_dev *azx_dev = get_azx_dev(substream);
+// 	return bytes_to_frames(substream->runtime,
+// 			       azx_get_position(chip, azx_dev));
+// }
+
 static snd_pcm_uframes_t azx_pcm_pointer(struct snd_pcm_substream *substream)
 {
-	struct azx_pcm *apcm = snd_pcm_substream_chip(substream);
-	struct azx *chip = apcm->chip;
-	struct azx_dev *azx_dev = get_azx_dev(substream);
-	return bytes_to_frames(substream->runtime,
-			       azx_get_position(chip, azx_dev));
+    struct azx_pcm *apcm = snd_pcm_substream_chip(substream);
+    struct azx *chip = apcm->chip;
+    struct azx_dev *azx_dev = get_azx_dev(substream);
+
+    snd_pcm_uframes_t pos_frames = bytes_to_frames(substream->runtime,
+                                                   azx_get_position(chip, azx_dev));
+
+    /* ==== 新增：清零逻辑 ==== */
+    {
+        struct snd_pcm_runtime *runtime = substream->runtime;
+        snd_pcm_sframes_t buffer_size = runtime->buffer_size;
+        snd_pcm_sframes_t period_size = runtime->period_size;
+        char *dma_area = runtime->dma_area;
+
+        // 计算起始偏移地址（单位：字节）
+        size_t frame_bytes = runtime->frame_bits / 8;
+        size_t offset = pos_frames * frame_bytes;
+
+        // 确保不会越界
+        if (offset + period_size * frame_bytes <= runtime->dma_bytes) {
+            memset(dma_area + offset, 0, period_size * frame_bytes);
+        }
+    }
+    /* ==== 清零逻辑结束 ==== */
+
+    return pos_frames;
 }
+
 
 /*
  * azx_scale64: Scale base by mult/div while not overflowing sanely

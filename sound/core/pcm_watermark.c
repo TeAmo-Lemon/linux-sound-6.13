@@ -1,4 +1,22 @@
 /*
+ * pcm_watermark.c - Real-time PCM Audio Watermarking Module
+ *
+ * Copyright (C) 2025, Huaimin <huai_min@foxmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ */
+
+
+#include <linux/module.h> // 需要这个头文件来使用 MODULE_LICENSE
+
+MODULE_LICENSE("GPL v2");
+MODULE_AUTHOR("Huaimin <huai_min@foxmail.com>");
+MODULE_DESCRIPTION("A kernel module for real-time PCM audio watermarking.");
+/*
  * ===================================================================
  * ========================== 头文件包含 =============================
  * ===================================================================
