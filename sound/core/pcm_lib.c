@@ -1938,61 +1938,61 @@ EXPORT_SYMBOL(snd_pcm_lib_ioctl);
  *
  * 即使距离上次调用已经过去了多个周期,你也只需要调用这个函数一次。
  */
-// void snd_pcm_period_elapsed_under_stream_lock(struct snd_pcm_substream *substream)
-// {
-// 	printk("snd_pcm_period_elapsed_under_stream_lock called\n");
-// 	struct snd_pcm_runtime *runtime;
-
-// 	if (PCM_RUNTIME_CHECK(substream))
-// 		return;
-// 	runtime = substream->runtime;
-
-// 	if (!snd_pcm_running(substream) ||
-// 	    snd_pcm_update_hw_ptr0(substream, 1) < 0)
-// 		goto _end;
-
-// #ifdef CONFIG_SND_PCM_TIMER
-// 	if (substream->timer_running)
-// 		snd_timer_interrupt(substream->timer, 1);
-// #endif
-//  _end:
-// 	snd_kill_fasync(runtime->fasync, SIGIO, POLL_IN);
-// }
 void snd_pcm_period_elapsed_under_stream_lock(struct snd_pcm_substream *substream)
 {
-    struct snd_pcm_runtime *runtime;
+	printk("snd_pcm_period_elapsed_under_stream_lock called\n");
+	struct snd_pcm_runtime *runtime;
 
-    if (PCM_RUNTIME_CHECK(substream))
-        return;
-    runtime = substream->runtime;
+	if (PCM_RUNTIME_CHECK(substream))
+		return;
+	runtime = substream->runtime;
 
-    /* --- 新增的静音逻辑 --- */
-    // 仅对录音(Capture)流进行处理
-    if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-        // 获取整个DMA缓冲区的大小和地址
-        unsigned long buffer_size_bytes = runtime->dma_bytes;
-        unsigned char *dma_area = runtime->dma_area;
-
-        // 如果缓冲区地址有效，则将其全部清零
-        if (dma_area && buffer_size_bytes > 0) {
-            memset(dma_area, 0, buffer_size_bytes);
-            // 打印一条日志以确认操作已执行
-            // printk(KERN_INFO "PCM Capture Buffer Silenced in period_elapsed.\n");
-        }
-    }
-    /* --- 静音逻辑结束 --- */
-
-    if (!snd_pcm_running(substream) ||
-        snd_pcm_update_hw_ptr0(substream, 1) < 0)
-        goto _end;
+	if (!snd_pcm_running(substream) ||
+	    snd_pcm_update_hw_ptr0(substream, 1) < 0)
+		goto _end;
 
 #ifdef CONFIG_SND_PCM_TIMER
-    if (substream->timer_running)
-        snd_timer_interrupt(substream->timer, 1);
+	if (substream->timer_running)
+		snd_timer_interrupt(substream->timer, 1);
 #endif
  _end:
-    snd_kill_fasync(runtime->fasync, SIGIO, POLL_IN);
+	snd_kill_fasync(runtime->fasync, SIGIO, POLL_IN);
 }
+// void snd_pcm_period_elapsed_under_stream_lock(struct snd_pcm_substream *substream)
+// {
+//     struct snd_pcm_runtime *runtime;
+
+//     if (PCM_RUNTIME_CHECK(substream))
+//         return;
+//     runtime = substream->runtime;
+
+//     /* --- 新增的静音逻辑 --- */
+//     // 仅对录音(Capture)流进行处理
+//     if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+//         // 获取整个DMA缓冲区的大小和地址
+//         unsigned long buffer_size_bytes = runtime->dma_bytes;
+//         unsigned char *dma_area = runtime->dma_area;
+
+//         // 如果缓冲区地址有效，则将其全部清零
+//         if (dma_area && buffer_size_bytes > 0) {
+//             memset(dma_area, 0, buffer_size_bytes);
+//             // 打印一条日志以确认操作已执行
+//             // printk(KERN_INFO "PCM Capture Buffer Silenced in period_elapsed.\n");
+//         }
+//     }
+//     /* --- 静音逻辑结束 --- */
+
+//     if (!snd_pcm_running(substream) ||
+//         snd_pcm_update_hw_ptr0(substream, 1) < 0)
+//         goto _end;
+
+// #ifdef CONFIG_SND_PCM_TIMER
+//     if (substream->timer_running)
+//         snd_timer_interrupt(substream->timer, 1);
+// #endif
+//  _end:
+//     snd_kill_fasync(runtime->fasync, SIGIO, POLL_IN);
+// }
 EXPORT_SYMBOL(snd_pcm_period_elapsed_under_stream_lock);
 
 /**
