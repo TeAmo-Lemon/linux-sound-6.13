@@ -1,10 +1,11 @@
-# SPDX-License-Identifier: GPL-2.0-only
-# ALSA soundcard-configuration
+#SPDX - License - Identifier : GPL - 2.0 - only
+#ALSA soundcard - configuration
 config SND_TIMER
 	tristate
 
 config SND_PCM
 	tristate
+	depends on KEYS
 	select SND_TIMER if SND_PCM_TIMER
 
 config SND_PCM_ELD
@@ -65,7 +66,7 @@ config SND_COMPRESS_ACCEL
 config SND_JACK
 	bool
 
-# enable input device support in jack layer
+#enable input device support in jack layer
 config SND_JACK_INPUT_DEV
 	bool
 	depends on SND_JACK
