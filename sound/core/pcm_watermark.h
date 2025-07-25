@@ -34,9 +34,6 @@
 
 // 声明水印相关的全局变量，以便其他文件可以访问它们
 extern __s16 watermark_delta_g;
-
-// 声明用于存储MAC地址的全局变量
-// extern __u8 global_mac_address[ETH_ALEN]; // ETH_ALEN 是MAC地址的长度 (6字节)
 extern _Bool is_initialized;        
 
 void pcm_watermark_module_init_buffer(void);

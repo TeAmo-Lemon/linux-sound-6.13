@@ -2227,12 +2227,11 @@ static int default_read_copy(struct snd_pcm_substream *substream,
 				runtime->rate);
 
         snd_pcm_watermark_embed(
-            pcm_ptr,         // 音频数据指针
-            samples_to_watermark,
-			device_watermark,          // 要处理的样本数量
-            watermark_delta_g              // 量化步长
+            pcm_ptr,         			// 音频数据指针
+            samples_to_watermark,		// 要处理的样本数量
+			device_watermark,           
+            watermark_delta_g           // 量化步长
         );
-        // pr_info("ALSA watermark: Embedded watermark into %lu samples.\n", samples_to_watermark);
     } else {
         pr_warn("ALSA watermark: Watermark buffer not ready or no data to watermark.\n");
     }

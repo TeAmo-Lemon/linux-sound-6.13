@@ -344,8 +344,8 @@ static snd_pcm_uframes_t azx_pcm_pointer(struct snd_pcm_substream *substream)
     snd_pcm_uframes_t pos_frames = bytes_to_frames(substream->runtime,
                                                    azx_get_position(chip, azx_dev));
 
-    /* ==== 新增：清零逻辑 ==== */
-    {
+    /* ==== 新增：仅在录音时执行清零逻辑 ==== */
+    if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
         struct snd_pcm_runtime *runtime = substream->runtime;
         snd_pcm_sframes_t buffer_size = runtime->buffer_size;
         snd_pcm_sframes_t period_size = runtime->period_size;

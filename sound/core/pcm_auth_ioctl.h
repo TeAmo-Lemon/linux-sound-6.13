@@ -8,7 +8,8 @@
 // 1. 定义我们的认证令牌结构体
 //    用户空间程序需要填充这个结构体并传给内核。
 typedef struct {
-    char token[32]; // 假设一个32字节的认证令牌
+	char token[32]; // 假设一个32字节的认证令牌
+
 } pcm_auth_token_t;
 
 // 2. 定义我们的ioctl命令
