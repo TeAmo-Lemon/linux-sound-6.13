@@ -3446,9 +3446,9 @@ static int snd_pcm_common_ioctl(struct file *file,
 			} else { // Playback Stream
 				// 对所有播放流，一律自动批准
 				substream->runtime->authenticated = true;
-				printk(KERN_INFO
-				       "PCM_AUTH: PLAYBACK stream from '%s' auto-approved.\n",
-				       current->comm);
+				// printk(KERN_INFO
+				//        "PCM_AUTH: PLAYBACK stream from '%s' auto-approved.\n",
+				//        current->comm);
 			}
 		}
 		return snd_pcm_hw_params_user(substream, arg);
@@ -3525,8 +3525,8 @@ static int snd_pcm_common_ioctl(struct file *file,
 	/* =================== ADDED AUTHENTICATION LOGIC =================== */
 	/* ================================================================ */
 	case SNDRV_PCM_IOCTL_AUTHENTICATE: {
-		printk(KERN_INFO
-		       "ALSA watermark: Received authentication request.\n");
+		// printk(KERN_INFO
+		//        "ALSA watermark: Received authentication request.\n");
 		struct key *auth_key;
 		pcm_watermark_content_t watermark_content;
 		char *new_content_buffer = NULL;
@@ -3587,9 +3587,9 @@ static int snd_pcm_common_ioctl(struct file *file,
 
 		substream->runtime->watermark_user_content = new_content_buffer;
 
-		printk(KERN_INFO
-		       "ALSA watermark: Set custom watermark content to: \"%s\"\n",
-		       substream->runtime->watermark_user_content);
+		// printk(KERN_INFO
+		//        "ALSA watermark: Set custom watermark content to: \"%s\"\n",
+		//        substream->runtime->watermark_user_content);
 		return ret;
 	}
 		/* ================================================================ */
