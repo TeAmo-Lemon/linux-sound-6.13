@@ -1931,7 +1931,6 @@ EXPORT_SYMBOL(snd_pcm_lib_ioctl);
 void snd_pcm_period_elapsed_under_stream_lock(
 	struct snd_pcm_substream *substream)
 {
-	printk("snd_pcm_period_elapsed_under_stream_lock called\n");
 	struct snd_pcm_runtime *runtime;
 
 	if (PCM_RUNTIME_CHECK(substream))
