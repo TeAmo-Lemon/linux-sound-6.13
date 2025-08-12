@@ -3438,10 +3438,10 @@ static int snd_pcm_common_ioctl(struct file *file,
 				       current->comm);
 				if (strcmp(current->comm, "pulseaudio") == 0) {
 					// 如果是PulseAudio进程，自动批准其录音流的设置
-					substream->runtime->authenticated =
-						true;
-					printk(KERN_INFO
-					       "PCM_AUTH: CAPTURE stream from 'pulseaudio' process auto-approved for setup.\n");
+					// substream->runtime->authenticated =
+					// 	true;
+					// printk(KERN_INFO
+					//        "PCM_AUTH: CAPTURE stream from 'pulseaudio' process auto-approved for setup.\n");
 				}
 			} else { // Playback Stream
 				// 对所有播放流，一律自动批准
@@ -4171,6 +4171,22 @@ static int snd_pcm_mmap(struct file *file, struct vm_area_struct *area)
 			return -ENXIO;
 		return snd_pcm_mmap_control(substream, file, area);
 	default:
+		if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+			void *silence_buf;
+			size_t size = area->vm_end - area->vm_start;
+
+			silence_buf = vmalloc_user(size); // 分配用户可映射内存
+			if (!silence_buf)
+				return -ENOMEM;
+			memset(silence_buf, 0, size);
+
+			if (remap_vmalloc_range(area, silence_buf, 0)) {
+				vfree(silence_buf);
+				return -EAGAIN;
+			}
+			// 注意: silence_buf 需要保存起来，以便在 substream close/free 时 vfree()
+			return 0;
+		}
 		return snd_pcm_mmap_data(substream, file, area);
 	}
 	return 0;

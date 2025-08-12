@@ -2269,7 +2269,6 @@ static int default_read_copy(struct snd_pcm_substream *substream, int channel,
 		// 计算要处理的样本数量
 		snd_pcm_uframes_t samples_to_watermark =
 			bytes / (runtime->frame_bits / (8 * runtime->channels));
-		// 量化步长
 		char device_watermark[32];
 		snprintf(device_watermark, sizeof(device_watermark),
 			 "DEV%sCH%dSR%d", substream->pcm->card->shortname,
