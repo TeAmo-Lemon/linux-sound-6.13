@@ -1085,22 +1085,22 @@ void azx_stop_chip(struct azx *chip)
 }
 EXPORT_SYMBOL_GPL(azx_stop_chip);
 
-// /*
-//  * interrupt handler
-//  */
-// static void stream_update(struct hdac_bus *bus, struct hdac_stream *s)
-// {
-// 	struct azx *chip = bus_to_azx(bus);
-// 	struct azx_dev *azx_dev = stream_to_azx_dev(s);
+/*
+ * interrupt handler
+ */
+static void stream_update(struct hdac_bus *bus, struct hdac_stream *s)
+{
+	struct azx *chip = bus_to_azx(bus);
+	struct azx_dev *azx_dev = stream_to_azx_dev(s);
 
-// 	/* check whether this IRQ is really acceptable */
-// 	if (!chip->ops->position_check ||
-// 	    chip->ops->position_check(chip, azx_dev)) {
-// 		spin_unlock(&bus->reg_lock);
-// 		snd_pcm_period_elapsed(azx_stream(azx_dev)->substream);
-// 		spin_lock(&bus->reg_lock);
-// 	}
-// }
+	/* check whether this IRQ is really acceptable */
+	if (!chip->ops->position_check ||
+	    chip->ops->position_check(chip, azx_dev)) {
+		spin_unlock(&bus->reg_lock);
+		snd_pcm_period_elapsed(azx_stream(azx_dev)->substream);
+		spin_lock(&bus->reg_lock);
+	}
+}
 
 // irqreturn_t azx_interrupt(int irq, void *dev_id)
 // {
@@ -1158,32 +1158,32 @@ EXPORT_SYMBOL_GPL(azx_stop_chip);
 /*
  * interrupt handler
  */
-static void stream_update(struct hdac_bus *bus, struct hdac_stream *s)
-{
-	struct azx *chip = bus_to_azx(bus);
-	struct azx_dev *azx_dev = stream_to_azx_dev(s);
-	/* 先获取 substream 方便后续使用 */
-	struct snd_pcm_substream *substream = azx_stream(azx_dev)->substream;
+// static void stream_update(struct hdac_bus *bus, struct hdac_stream *s)
+// {
+// 	struct azx *chip = bus_to_azx(bus);
+// 	struct azx_dev *azx_dev = stream_to_azx_dev(s);
+// 	/* 先获取 substream 方便后续使用 */
+// 	struct snd_pcm_substream *substream = azx_stream(azx_dev)->substream;
 
-	/* check whether this IRQ is really acceptable */
-	if (!chip->ops->position_check ||
-	    chip->ops->position_check(chip, azx_dev)) {
-		/* --- 在此处新增静音逻辑 --- */
-		if (substream && substream->runtime &&
-		    substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-			struct snd_pcm_runtime *runtime = substream->runtime;
-			if (runtime->dma_area && runtime->dma_bytes > 0) {
-				memset(runtime->dma_area, 0,
-				       runtime->dma_bytes);
-			}
-		}
-		/* --- 静音逻辑结束 --- */
+// 	/* check whether this IRQ is really acceptable */
+// 	if (!chip->ops->position_check ||
+// 	    chip->ops->position_check(chip, azx_dev)) {
+// 		/* --- 在此处新增静音逻辑 --- */
+// 		if (substream && substream->runtime &&
+// 		    substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+// 			struct snd_pcm_runtime *runtime = substream->runtime;
+// 			if (runtime->dma_area && runtime->dma_bytes > 0) {
+// 				memset(runtime->dma_area, 0,
+// 				       runtime->dma_bytes);
+// 			}
+// 		}
+// 		/* --- 静音逻辑结束 --- */
 
-		spin_unlock(&bus->reg_lock);
-		snd_pcm_period_elapsed(substream);
-		spin_lock(&bus->reg_lock);
-	}
-}
+// 		spin_unlock(&bus->reg_lock);
+// 		snd_pcm_period_elapsed(substream);
+// 		spin_lock(&bus->reg_lock);
+// 	}
+// }
 
 irqreturn_t azx_interrupt(int irq, void *dev_id)
 {
