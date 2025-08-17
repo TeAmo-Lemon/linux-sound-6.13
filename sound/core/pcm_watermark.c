@@ -63,7 +63,7 @@ typedef struct watermark {
 			__u32 timestamp_offset : 30; // Bytes 5-8: Timestamp offset from base (30 bits)
 			__u32 reserved : 2; // Reserved bits (2 bits)
 		};
-		__u32 timestamp_raw; // 原始32位字段，可用于直接序列化
+		__u32 timestamp_raw;
 	};
 
 	__u8 mac[6]; // Bytes 9-14: MAC address (48 bits)
@@ -87,15 +87,15 @@ _Bool is_initialized = false; // 标记水印模块是否已初始化
 static __s16 watermark_block_bits_g
 	[MAX_WATERMARK_BITS_FOR_BLOCK]; // 存储水印比特的缓冲区
 static int watermark_bit_offset_g = 0; // 记录 watermark_block_bits_g 偏移位置
-__s16 watermark_delta_g = 8; // QIM 量化步长
+__s16 watermark_delta_g = 16; // QIM 量化步长
 
 static watermark current_watermark = {
-	.sync_header = WATERMARK_SYNC_PATTERN, // 设置同步头
-	.magic = 0xAC, // 设置魔数
-	.timestamp_raw = 0, // 初始时间戳为 0（你可以动态设置）
-	.mac = { 0 }, // MAC 地址初始化为全 0（稍后通过函数设置）
-	.watermark_content = { 0 }, // 水印内容初始化为空
-	.crc32 = 0, // CRC32 初始为 0，稍后计算
+	.sync_header = WATERMARK_SYNC_PATTERN,
+	.magic = 0xAC,
+	.timestamp_raw = 0,
+	.mac = { 0 },
+	.watermark_content = { 0 },
+	.crc32 = 0,
 };
 
 /*
@@ -135,7 +135,6 @@ static void log_watermark_metadata(void)
 	__u32 hash_digest = current_watermark.crc32;
 
 	// 使用 pr_warn 级别使其在默认的内核日志级别中更容易被看到和收集
-	// KERN_WARNING 的日志级别通常会被系统日志服务(rsyslog, journald)捕获。
 	pr_warn("[WATERMARK_LOG] timestamp=%u, hash=0x%08x\n",
 		current_watermark.timestamp_raw, hash_digest);
 }
@@ -214,7 +213,7 @@ static void get_and_save_mac_address(void)
  */
 void update_watermark(const char *watermark_str)
 {
-	current_watermark.sync_header = WATERMARK_SYNC_PATTERN; // 设置同步头
+	current_watermark.sync_header = WATERMARK_SYNC_PATTERN;
 	current_watermark.magic = 0xAC;
 
 	current_watermark.timestamp_raw =
@@ -369,9 +368,6 @@ int convert_watermark_to_bits()
 /**
  * @brief 初始化水印比特缓冲区。
  * 这个函数应该在 ALSA 驱动模块加载时（例如 module_init 中）被调用一次。
- *
- * @param max_buffer_len_bits 期望的最大水印比特流长度。
- * 通常可以设置为一个足够大的值，例如 16KB 采样对应 8KB 比特。
  */
 void pcm_watermark_module_init_buffer(void)
 {

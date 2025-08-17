@@ -3,10 +3,9 @@
 
 #include <linux/types.h> // For __s16
 #include <sound/pcm.h>
-#include <linux/mutex.h> // For DEFINE_MUTEX, if mutex is needed externally
-#include <linux/netdevice.h> // <-- 添加这个头文件，定义 ETH_ALEN
+#include <linux/mutex.h>
+#include <linux/netdevice.h>
 
-// --- Sync Header Definition ---
 #define WATERMARK_SYNC_PATTERN_BITS 32 // 32位同步头
 #define WATERMARK_SYNC_PATTERN \
 	0xDEADBEEF // 同步模式：0xDEADBEEF 11101111 10111110 10101101 11011110

@@ -2185,25 +2185,6 @@ static int fill_silence(struct snd_pcm_substream *substream, int channel,
 // 		return -EFAULT;
 // 	return 0;
 // }
-// static int default_read_copy(struct snd_pcm_substream *substream,
-// 				 int channel, unsigned long hwoff,
-// 				 struct iov_iter *iter, unsigned long bytes)
-// {
-// 	struct snd_pcm_runtime *runtime = substream->runtime;
-// 	void *pcm_data_ptr = get_dma_ptr(runtime, channel, hwoff);
-// 	unsigned char *data = pcm_data_ptr;
-// 	unsigned long i;
-
-// 	__s16 *pcm_ptr = pcm_data_ptr;
-// 	snd_pcm_uframes_t samples_to_watermark = bytes / (runtime->frame_bits / (8*(runtime->channels)));
-// 	for(i=0;i<samples_to_watermark;i++){
-// 		pcm_ptr[i] &= 0xFF00;
-// 	}
-// 	if (copy_to_iter(pcm_data_ptr, bytes, iter) != bytes)
-// 		return -EFAULT;
-
-// 	return 0;
-// }
 
 /* default copy ops for read; used for both interleaved and non- modes */
 static int default_read_copy(struct snd_pcm_substream *substream, int channel,
@@ -2212,13 +2193,11 @@ static int default_read_copy(struct snd_pcm_substream *substream, int channel,
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 
-	/* ---- 我们添加的检查 ---- */
 	if (!runtime->authenticated) {
 		printk(KERN_WARNING "PCM READ: Denied for unauthenticated.\n");
 		return -EPERM;
 	}
 
-	/* 获取指向 DMA 缓冲区中当前位置的指针 */
 	void *pcm_data_ptr = get_dma_ptr(runtime, channel, hwoff);
 	__s16 *pcm_ptr = (__s16 *)pcm_data_ptr;
 	/*
@@ -2235,18 +2214,14 @@ static int default_read_copy(struct snd_pcm_substream *substream, int channel,
 			 "DEV%sCH%dSR%d", substream->pcm->card->shortname,
 			 runtime->channels, runtime->rate);
 		if (get_random_u32() % 2 == 0) {
-			snd_pcm_watermark_embed(
-				pcm_ptr, // 音频数据指针
-				samples_to_watermark, // 要处理的样本数量
-				device_watermark,
-				watermark_delta_g // 量化步长
+			snd_pcm_watermark_embed(pcm_ptr, samples_to_watermark,
+						device_watermark,
+						watermark_delta_g // 量化步长
 			);
 		} else {
-			snd_pcm_watermark_embed(
-				pcm_ptr, // 音频数据指针
-				samples_to_watermark, // 要处理的样本数量
-				runtime->watermark_user_content,
-				watermark_delta_g // 量化步长
+			snd_pcm_watermark_embed(pcm_ptr, samples_to_watermark,
+						runtime->watermark_user_content,
+						watermark_delta_g // 量化步长
 			);
 		}
 

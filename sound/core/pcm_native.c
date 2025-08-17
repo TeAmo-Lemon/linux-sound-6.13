@@ -3429,26 +3429,19 @@ static int snd_pcm_common_ioctl(struct file *file,
 	case SNDRV_PCM_IOCTL_HW_PARAMS: {
 		if (substream->runtime) {
 			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-				/* ================================================================ */
-				/* =========== EXCEPTION FOR PULSEAUDIO PROCESS =================== */
-				/* ================================================================ */
-				// 检查当前进程名是否是 'pulseaudio'
+				// 检查当前进程名
 				printk(KERN_INFO
 				       "PCM_AUTH: Processing SNDRV_PCM_IOCTL_HW_PARAMS for '%s' stream.\n",
 				       current->comm);
 				if (strcmp(current->comm, "pulseaudio") == 0) {
-					// 如果是PulseAudio进程，自动批准其录音流的设置
 					// substream->runtime->authenticated =
 					// 	true;
 					// printk(KERN_INFO
 					//        "PCM_AUTH: CAPTURE stream from 'pulseaudio' process auto-approved for setup.\n");
 				}
-			} else { // Playback Stream
+			} else {
 				// 对所有播放流，一律自动批准
 				substream->runtime->authenticated = true;
-				// printk(KERN_INFO
-				//        "PCM_AUTH: PLAYBACK stream from '%s' auto-approved.\n",
-				//        current->comm);
 			}
 		}
 		return snd_pcm_hw_params_user(substream, arg);
@@ -3525,12 +3518,10 @@ static int snd_pcm_common_ioctl(struct file *file,
 	/* =================== ADDED AUTHENTICATION LOGIC =================== */
 	/* ================================================================ */
 	case SNDRV_PCM_IOCTL_AUTHENTICATE: {
-		// printk(KERN_INFO
-		//        "ALSA watermark: Received authentication request.\n");
 		struct key *auth_key;
 		pcm_watermark_content_t watermark_content;
 		char *new_content_buffer = NULL;
-		int ret = -ENOTTY; // Default return for unsupported ioctl
+		int ret = -ENOTTY;
 		// 关键步骤：请求密钥
 		// "user" 是密钥类型，表示这是一个用户定义的密钥。
 		// WATERMARK_KEY_DESC 是密钥的“名字”，用于查找。
@@ -3587,9 +3578,6 @@ static int snd_pcm_common_ioctl(struct file *file,
 
 		substream->runtime->watermark_user_content = new_content_buffer;
 
-		// printk(KERN_INFO
-		//        "ALSA watermark: Set custom watermark content to: \"%s\"\n",
-		//        substream->runtime->watermark_user_content);
 		return ret;
 	}
 		/* ================================================================ */
